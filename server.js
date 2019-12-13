@@ -1,5 +1,8 @@
 var inquirer = require("inquirer");
-var connection = require("./config/connection.js")
+var connection = require("./config/connection.js");
+var department = require("./models/department.js");
+var employee = require("./models/employee.js");
+var role = require("./models/role.js")
 
 
 connection.connect(function (err) {
