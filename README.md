@@ -8,6 +8,8 @@
 
     Functionally link the dependancies of those tables/classes such that they can properly interact with each other.
 
+    if possible make model classes to make calling functions easier and less reliant on promise handling.
+
 ### Assignment Specifications:
     # Unit 12 MySQL Homework: Employee Tracker
 
