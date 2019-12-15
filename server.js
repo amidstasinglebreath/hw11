@@ -18,8 +18,10 @@ connection.connect(function (err) {
 });
 
 //somewhat of a misnomer as they technically just initialize use lists.
+//const?
 var  managerList = [];
 function initializeManagers(){
+    roleList = [];
     let listManagerQuery = ` SELECT CONCAT(m.first_name,' ',m.last_name) AS 'Manager' FROM employee e inner JOIN employee m ON e.manager_id = m.id;`;
     connection.query(listManagerQuery, function (err, res) {
         if (err) throw err;
@@ -30,8 +32,10 @@ function initializeManagers(){
     });
 }
 
+//const?
 var roleList = [];
 function initializeRoles(){
+    roleList = [];
     let listRoleQuery = "SELECT title FROM role;";
     connection.query(listRoleQuery, function (err, res) {
         if (err) throw err;
@@ -41,11 +45,27 @@ function initializeRoles(){
     });
 }
 
+//const?
+var empNameList = [];
+function initializeEmpNames(){
+    empNameList = [];
+    let listNameQuery = "SELECT id, CONCAT(first_name,' ',last_name) AS Name FROM employee;";
+    connection.query(listNameQuery, function (err, res) {
+        if (err) throw err;
+        for (var i = 0; i < res.length; i++) {
+            empNameList.push(res[i].id + "." + res[i].Name);
+        }
+    });
+}
+
 // main menu function
 function start() {
     // console.log(companyData);
     initializeManagers();
     initializeRoles();
+    initializeEmpNames();
+    //these may take longer than I would like to load, but it shouldn't be enough that a user could normally
+    //take to make a selection from the below menu
     console.log("Main Menu:");
     console.log("\n\n\n");
     inquirer.prompt({
@@ -81,9 +101,9 @@ function start() {
                     removeEmployeeDBQ(); //two stages?
                     break;
                 case ("Update Employee Role"):
-                    updateRole(); //two stages
+                    updateRole(roleList, empNameList); //two stages
                     break;
-                    /* //we don't actually need this
+                    /* //specification bonus 
                 case ("Update Employee Manager"):
                     updateManager(); //two stages
                     break;
@@ -281,7 +301,7 @@ function updateInfoAfterRemove(remove_employee_id) {
 }
 
 //updates the manager of an employee
-// not in specifications, do if there's extra time.
+// specification bonus, do if there's extra time.
 /*
 function updateManager() {
     // alter from display all, to display name, id, and manager
@@ -303,3 +323,51 @@ LEFT JOIN department ON department_id = department.id;`;
 }
 */
 
+function updateRole(listofRoles, namelist) {
+    let updateName;
+    let updateRole;
+    inquirer.prompt([
+        {
+            type: "list",
+            name: "employee",
+            message: "which employee do you want to update?",
+            choices: namelist
+        },
+        {
+            type: "list",
+            name: "role",
+            message: "which role do you want to update to?",
+            choices: listofRoles
+        }
+    ])
+        .then(function (data) {
+            updateName = data.employee;
+            updateRole = companyData[data.role].id;
+            let pickNameRoleIdQuery = "SELECT role_id FROM employee WHERE  CONCAT(first_name,' ',last_name ) = ?;";
+            connection.query(pickNameRoleIdQuery,[data.employee], function (err, res) {
+                if (err) throw err;
+                //verification of different update
+                if (res.role_id === companyData[data.role].id) {
+                    console.log("It seems like you update to the same role AS before.");
+                    inquirer.prompt({
+                        type: "confirm",
+                        name: "update",
+                        message: "Do you want to do the update again?"
+                    })
+                    .then (function(data){
+                        if (data.update) updateRole(listofRoles,namelist);
+                        else updateRoleDB(updateName, updateRole);
+                    });
+                }else updateRoleDB(updateName, updateRole);
+            });
+        })
+}
+
+function updateRoleDB (updateName, updateRole) {
+    let updateRoleQuery = "UPDATE employee SET role_id = ? WHERE  CONCAT(first_name,' ',last_name)=?;";
+    connection.query(updateRoleQuery,[updateRole,updateName],function (err, res){
+        if (err) throw err;
+        console.log(updateName +"'s role was updated to "+updateRole);
+        start();
+    })
+}
